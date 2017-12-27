@@ -91,7 +91,7 @@ public class AllocationLedger
         return new AllocationLedger(records().filter(include));
     }
 
-    private Stream<Record> records() {
+    public Stream<Record> records() {
         return records.values().stream().flatMap(m -> m.values().stream());
     }
 
@@ -102,11 +102,16 @@ public class AllocationLedger
                 .collect(toCollection(LinkedList::new)));
     }
 
+    public static AllocationLedger read(File file) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return read(mapper.readTree(file));
+    }
+
     public static AllocationLedger read(JsonNode value) {
         Stream<JsonNode> allocations = stream(value.spliterator(), false);
         return allocations.reduce(new AllocationLedger(), (l, allocation) -> {
             LinkedList<String> stack = new LinkedList<>();
-            allocation.get("stackTrace").forEach(s -> stack.add(s.toString()));
+            allocation.get("stackTrace").forEach(s -> stack.add(s.asText()));
             l.record(
                     allocation.get("obj").asText(),
                     allocation.get("totalBytes").asInt(),

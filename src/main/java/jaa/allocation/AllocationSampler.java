@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Plugs into the google allocation tracker */
-class AllocationSampler implements Sampler
+public class AllocationSampler implements Sampler
 {
     private static final String THIS_PACKAGE_NAME = AllocationSampler.class.getPackage().getName();
     private static final String SAMPLER_PACKAGE_NAME = Sampler.class.getPackage().getName();
@@ -23,14 +23,13 @@ class AllocationSampler implements Sampler
 
     private AllocationLedger ledger;
 
-    AllocationSampler(File output, int stackDepth) {
+    public AllocationSampler(File output, int stackDepth) {
         this.output = output;
         this.stackDepth = stackDepth;
     }
 
     public synchronized void start()
     {
-        System.err.println("[AllocationTracking] Start");;
         ledger = new AllocationLedger();
         profiling.set(true);
     }
@@ -38,7 +37,6 @@ class AllocationSampler implements Sampler
     public synchronized void stop() {
         profiling.set(false);
         try {
-            System.err.println("[AllocationTracking] Reporting to" + output.getAbsolutePath());
             ledger.write(output);
         } catch (IOException e) {
             throw new RuntimeException(e);

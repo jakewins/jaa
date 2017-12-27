@@ -1,7 +1,10 @@
 package jaa.examples;
 
+import com.google.monitoring.runtime.instrumentation.AllocationRecorder;
+import jaa.allocation.AllocationSampler;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
@@ -17,8 +20,12 @@ public class EntryPoint {
     public static void main(String ... argv) {
         try {
             switch (argv[0]) {
-                case "ea":
+                case "analyze-escapes":
+                    System.out.println("analyze escapes..");
                     new EntryPoint().execute(argv[1], Long.parseLong(argv[2]));
+                    break;
+                case "analyze-allocation":
+                    new EntryPoint().allocationTrackingExecute(argv[1], argv[2]);
                     break;
                 default:
                     stdout(asList("error", String.format("Unknown command %s", argv[0])));
@@ -36,6 +43,25 @@ public class EntryPoint {
             System.out.println("jaa " + new ObjectMapper().writeValueAsString(message));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void allocationTrackingExecute(String methodDescription, String outputPath) throws Exception
+    {
+        Method method = findMethod(methodDescription);
+        BlackHole hole = new BlackHole();
+        AllocationSampler sampler = new AllocationSampler(new File(outputPath), 15);
+
+        AllocationRecorder.addSampler(sampler);
+
+        try
+        {
+            sampler.start();
+            execute(hole, newInstance(method), method, 1);
+        }
+        finally
+        {
+            sampler.stop();
         }
     }
 

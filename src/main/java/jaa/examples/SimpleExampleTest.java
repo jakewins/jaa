@@ -9,7 +9,7 @@ public class SimpleExampleTest {
 
     @AllocationAnalysis
     public void simple() {
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 5000; i++) {
             allocateABunchOfObjectsForNoGoodReason();
         }
         System.out.println("Hello, world!");
