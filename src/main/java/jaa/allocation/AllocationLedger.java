@@ -1,20 +1,27 @@
 package jaa.allocation;
 
+import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.StreamSupport.stream;
 
 /** Data structure for storing allocations */
 public class AllocationLedger
 {
-    static class Record
+    public static class Record
     {
         private final List<String> stackTrace;
         private final String objectDescription;
@@ -61,6 +68,12 @@ public class AllocationLedger
         }
     }
 
+    public AllocationLedger(Stream<Record> records) {
+        records.forEach(r -> {
+            record(r.objectDescription, r.totalBytes.get(), r.stackTrace);
+        });
+    }
+
     public void record(String objectDescription, long bytes, List<String> stackTrace)
     {
         Map<List<String>, Record> stackTraces = records.computeIfAbsent(objectDescription, k -> new ConcurrentHashMap<>());
@@ -73,13 +86,32 @@ public class AllocationLedger
         record.increment(1, bytes);
     }
 
+    public AllocationLedger filter(Predicate<Record> include)
+    {
+        return new AllocationLedger(records().filter(include));
+    }
+
+    private Stream<Record> records() {
+        return records.values().stream().flatMap(m -> m.values().stream());
+    }
+
     public void write(File path) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectWriter writer = mapper.writer();
-        writer.writeValue(path, records
-                .values()
-                .stream()
-                .flatMap(r -> r.values().stream())
+        writer.writeValue(path, records()
                 .collect(toCollection(LinkedList::new)));
+    }
+
+    public static AllocationLedger read(JsonNode value) {
+        Stream<JsonNode> allocations = stream(value.spliterator(), false);
+        return allocations.reduce(new AllocationLedger(), (l, allocation) -> {
+            LinkedList<String> stack = new LinkedList<>();
+            allocation.get("stackTrace").forEach(s -> stack.add(s.toString()));
+            l.record(
+                    allocation.get("obj").asText(),
+                    allocation.get("totalBytes").asInt(),
+                    stack);
+            return l;
+        }, AllocationLedger::new);
     }
 }

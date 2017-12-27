@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -45,6 +47,17 @@ public class EliminationParser
                         throw new RuntimeException("Failed to parse line: '"+l+"'", e);
                     }
                 });
+    }
+
+    public static Map<String, List<EliminatedAllocation>> toMapOfEliminations(Stream<EliminatedAllocation> eliminations) {
+        Map<String, List<EliminatedAllocation>> eliminated = new HashMap<>();
+        eliminations.forEach(e -> {
+            String justName = e.objectName().split(":")[0];
+
+            List<EliminatedAllocation> allocations = eliminated.computeIfAbsent(justName, k -> new LinkedList<>());
+            allocations.add(e);
+        });
+        return eliminated;
     }
 
     public static void main(String ... argv) throws IOException {
