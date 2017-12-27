@@ -1,4 +1,4 @@
-package jaa.examples;
+package jaa.runner;
 
 import java.io.File;
 

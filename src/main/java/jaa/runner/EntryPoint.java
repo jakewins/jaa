@@ -1,4 +1,4 @@
-package jaa.examples;
+package jaa.runner;
 
 import com.google.monitoring.runtime.instrumentation.AllocationRecorder;
 import jaa.allocation.AllocationSampler;

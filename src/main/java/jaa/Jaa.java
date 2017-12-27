@@ -3,8 +3,8 @@ package jaa;
 import com.google.monitoring.runtime.instrumentation.Sampler;
 import jaa.allocation.AllocationLedger;
 import jaa.ea.EliminationParser;
-import jaa.examples.EntryPoint;
-import jaa.examples.JaaResources;
+import jaa.runner.EntryPoint;
+import jaa.runner.JaaResources;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -41,9 +41,7 @@ public class Jaa
                 try {
                     String methodDescription = m.getDeclaringClass().getName() + "#" + m.getName();
 
-                    // 1. One run to analyze what gets eliminated via escape analysis.
-                    // This needs to be done in a separate process run because the instrumentation
-                    // to then track allocation points alters what the JVM eliminates.
+                    // 1. One run to analyze what gets eliminated by escape analysis
                     String[] args = {
                             javaExecutable.getAbsolutePath(),
                             "-classpath", classPath,
@@ -63,7 +61,7 @@ public class Jaa
                         throw new RuntimeException(String.format("Test exited with error code %d", process.exitValue()));
                     }
 
-                    // 2. One run to get a detailed allocation profile
+                    // 2. One run to get an allocation profile
                     File fullReportPath = new File(reportFolder, methodDescription + ".full.json");
                     File reportPath = new File(reportFolder, methodDescription + ".json");
 
@@ -81,6 +79,7 @@ public class Jaa
                         throw new RuntimeException(String.format("Test exited with error code %d", exec.exitValue()));
                     }
 
+                    // 3. Combine the two into a report of allocations, sans eliminated ones
                     AllocationLedger ledger = AllocationLedger.read(fullReportPath)
                             .filter(excludeEliminatedAllocations);
                     ledger.write( reportPath );
