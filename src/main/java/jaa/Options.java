@@ -1,6 +1,6 @@
 package jaa;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -9,9 +9,9 @@ import java.util.stream.Stream;
 public class Options
 {
     private final Set<String> includes;
-    private final File javaExecutable;
-    private final File allocationInstrumenter;
-    private final File reportFolder;
+    private final Path javaExecutable;
+    private final Path allocationInstrumenter;
+    private final Path reportFolder;
 
     public static class Builder {
 
@@ -43,7 +43,7 @@ public class Options
          * @param pathToJavaExecutable
          * @return a new builder
          */
-        public Builder withJavaExecutable(File pathToJavaExecutable)
+        public Builder withJavaExecutable(Path pathToJavaExecutable)
         {
             return new Builder(new Options(state.includes, pathToJavaExecutable, state.allocationInstrumenter, state.reportFolder));
         }
@@ -57,7 +57,7 @@ public class Options
          * @param pathToAllocationInstrumenterJar
          * @return a new builder
          */
-        public Builder withAllocationInstrumenter(File pathToAllocationInstrumenterJar)
+        public Builder withAllocationInstrumenter(Path pathToAllocationInstrumenterJar)
         {
             return new Builder(new Options(state.includes, state.javaExecutable, pathToAllocationInstrumenterJar, state.reportFolder));
         }
@@ -68,7 +68,7 @@ public class Options
          * @param reportFolder
          * @return a new builder
          */
-        public Builder withReportPathTemplate(File reportFolder)
+        public Builder withReportPathTemplate(Path reportFolder)
         {
             return new Builder(new Options(state.includes, state.javaExecutable, state.allocationInstrumenter, reportFolder));
         }
@@ -79,7 +79,7 @@ public class Options
         }
     }
 
-    private Options(Set<String> includes, File javaExecutable, File allocationInstrumenter, File reportFolder) {
+    private Options(Set<String> includes, Path javaExecutable, Path allocationInstrumenter, Path reportFolder) {
         this.includes = includes;
         this.javaExecutable = javaExecutable;
         this.allocationInstrumenter = allocationInstrumenter;
@@ -90,15 +90,15 @@ public class Options
         return includes.stream();
     }
 
-    public File javaExecutable() {
+    public Path javaExecutable() {
         return javaExecutable;
     }
 
-    public File allocationInstrumenter() {
+    public Path allocationInstrumenter() {
         return allocationInstrumenter;
     }
 
-    public File reportFolder() {
+    public Path reportFolder() {
         return reportFolder;
     }
 }

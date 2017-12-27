@@ -6,6 +6,7 @@ import org.codehaus.jackson.map.ObjectWriter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -95,11 +96,19 @@ public class AllocationLedger
         return records.values().stream().flatMap(m -> m.values().stream());
     }
 
+    public void write(Path path) throws IOException {
+        write(path.toFile());
+    }
+
     public void write(File path) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectWriter writer = mapper.writer();
         writer.writeValue(path, records()
                 .collect(toCollection(LinkedList::new)));
+    }
+
+    public static AllocationLedger read(Path path) throws IOException {
+        return read(path.toFile());
     }
 
     public static AllocationLedger read(File file) throws IOException {

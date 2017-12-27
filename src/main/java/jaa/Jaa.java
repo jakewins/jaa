@@ -5,10 +5,14 @@ import jaa.allocation.AllocationLedger;
 import jaa.ea.EliminationParser;
 import jaa.runner.EntryPoint;
 import jaa.runner.JaaResources;
+import jaa.runner.Proc;
 
-import java.io.*;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.function.Function;
@@ -16,6 +20,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static jaa.ea.EliminationParser.predicateThatExcludes;
+import static jaa.runner.Proc.exec;
 import static java.util.Comparator.comparingLong;
 import static java.util.stream.Collectors.joining;
 
@@ -27,97 +32,86 @@ public class Jaa
         this.options = options;
     }
 
-    public void run()
-    {
-        final String classPath = System.getProperty("java.class.path");
-        final File javaExecutable = javaExecutable();
-        final File allocationInstrumenterJar = allocationInstrumenterJarPath();
-        final File reportFolder = reportFolder();
+    public void run() {
+        try {
+            final String classPath = System.getProperty("java.class.path");
+            final Path javaExecutable = javaExecutable();
+            final Path allocationInstrumenterJar = allocationInstrumenterJarPath();
+            final Path reportFolder = reportFolder();
 
-        options
-            .includes()
-            .flatMap(getAnalysisDecoratedMethods())
-            .forEach(m -> {
-                try {
-                    String methodDescription = m.getDeclaringClass().getName() + "#" + m.getName();
+            options
+                    .includes()
+                    .flatMap(getAnalysisDecoratedMethods())
+                    .forEach((Method m) -> {
+                        try {
+                            String methodDescription = m.getDeclaringClass().getName() + "#" + m.getName();
 
-                    // 1. One run to analyze what gets eliminated by escape analysis
-                    String[] args = {
-                            javaExecutable.getAbsolutePath(),
-                            "-classpath", classPath,
-                            "-XX:+UnlockDiagnosticVMOptions",
-                            "-XX:+PrintEliminateAllocations",
-                            EntryPoint.class.getName(),
-                            "analyze-escapes",
-                            methodDescription,
-                            "1"};
-                    Process process = exec(args);
-                    Stream<String> outputLines = standardOutputFrom(process);
+                            // 1. One run to analyze what gets eliminated by escape analysis
+                            Proc proc = exec(
+                                    javaExecutable.toAbsolutePath().toString(),
+                                    "-classpath", classPath,
+                                    "-XX:+UnlockDiagnosticVMOptions",
+                                    "-XX:+PrintEliminateAllocations",
+                                    EntryPoint.class.getName(),
+                                    "analyze-escapes",
+                                    methodDescription,
+                                    "1");
+                            Predicate<AllocationLedger.Record> excludeEliminatedAllocations = predicateThatExcludes(
+                                    new EliminationParser().parse(proc.stdout()));
+                            proc.awaitSuccessfulExit();
 
-                    Predicate<AllocationLedger.Record> excludeEliminatedAllocations = predicateThatExcludes(
-                            new EliminationParser().parse(outputLines));
-                    process.waitFor();
-                    if(process.exitValue() != 0) {
-                        throw new RuntimeException(String.format("Test exited with error code %d", process.exitValue()));
-                    }
+                            // 2. One run to get an allocation profile
+                            Path fullReportPath = reportFolder.resolve(methodDescription + ".full.json");
+                            Path reportPath = reportFolder.resolve(methodDescription + ".json");
 
-                    // 2. One run to get an allocation profile
-                    File fullReportPath = new File(reportFolder, methodDescription + ".full.json");
-                    File reportPath = new File(reportFolder, methodDescription + ".json");
+                            exec(javaExecutable.toAbsolutePath().toString(),
+                                    "-classpath", classPath,
+                                    "-javaagent:" + allocationInstrumenterJar.toAbsolutePath().toString(),
+                                    EntryPoint.class.getName(),
+                                    "analyze-allocation",
+                                    methodDescription,
+                                    fullReportPath.toAbsolutePath().toString())
+                                    .awaitSuccessfulExit();
 
-                    String[] args2 = {
-                            javaExecutable.getAbsolutePath(),
-                            "-classpath", classPath,
-                            "-javaagent:" + allocationInstrumenterJar.getAbsolutePath(),
-                            EntryPoint.class.getName(),
-                            "analyze-allocation",
-                            methodDescription,
-                            fullReportPath.getAbsolutePath()};
-                    Process exec = exec(args2);
-                    exec.waitFor();
-                    if(exec.exitValue() != 0) {
-                        throw new RuntimeException(String.format("Test exited with error code %d", exec.exitValue()));
-                    }
+                            // 3. Combine the two into a report of allocations, sans eliminated ones
+                            AllocationLedger ledger = AllocationLedger.read(fullReportPath)
+                                    .filter(excludeEliminatedAllocations);
+                            ledger.write(reportPath);
 
-                    // 3. Combine the two into a report of allocations, sans eliminated ones
-                    AllocationLedger ledger = AllocationLedger.read(fullReportPath)
-                            .filter(excludeEliminatedAllocations);
-                    ledger.write( reportPath );
-
-                    System.out.println(methodDescription);
-                    ledger.records().sorted(comparingLong(r -> -r.getTotalBytes())).limit(5).forEach(r -> {
-                        System.out.printf("%db of %s at:\n\t%s\n",
-                                r.getTotalBytes(),
-                                r.getObj(),
-                                r.getStackTrace()
-                                        .stream()
-                                        .filter(s -> s.length() > 1)
-                                        .collect(joining("\n\t")));
+                            System.out.println(methodDescription);
+                            ledger.records().sorted(comparingLong(r -> -r.getTotalBytes())).limit(5).forEach(r -> {
+                                System.out.printf("%db of %s at:\n\t%s\n",
+                                        r.getTotalBytes(),
+                                        r.getObj(),
+                                        r.getStackTrace()
+                                                .stream()
+                                                .filter(s -> s.length() > 1)
+                                                .collect(joining("\n\t")));
+                            });
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
                     });
-
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    private File reportFolder() {
-        File reportPathTemplate = options.reportFolder();
-        if(reportPathTemplate != null) {
-            return reportPathTemplate;
+    private Path reportFolder() throws IOException {
+        Path reportFolder = options.reportFolder();
+        if(reportFolder != null) {
+            return reportFolder;
         }
 
-        File file = new File(String.format("./allocations-%s",
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date())));
-        if(!file.mkdirs()) {
-            throw new IllegalStateException(String.format("Unable to create folder for reports at %s",
-                    file.getAbsolutePath()));
-        }
-        return file;
+        String directoryName = String.format("allocations-%s",
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date()));
+        reportFolder = Paths.get(".",directoryName);
+        Files.createDirectories(reportFolder);
+        return reportFolder;
     }
 
-    private File allocationInstrumenterJarPath() {
-        File allocationInstrumenter = options.allocationInstrumenter();
+    private Path allocationInstrumenterJarPath() {
+        Path allocationInstrumenter = options.allocationInstrumenter();
         if(allocationInstrumenter != null) {
             return allocationInstrumenter;
         }
@@ -127,30 +121,11 @@ public class Jaa
         if(!location.getPath().startsWith("file:")) {
             throw new RuntimeException("Unable to determine location of the allocation instrumenter jar, please download the allocation jar from https://github.com/google/allocation-instrumenter and manually specify the location in the options to the Jaa runner.");
         }
-        return new File(location.getPath().substring("file:".length()).split("!")[0]);
+        return Paths.get(location.getPath().substring("file:".length()).split("!")[0]);
     }
 
-    private Process exec(String[] args) throws IOException {
-        ProcessBuilder builder = new ProcessBuilder(args);
-        builder.inheritIO().redirectOutput(ProcessBuilder.Redirect.PIPE);
-        return builder.start();
-    }
-
-    private Stream<String> standardOutputFrom(Process process) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()));
-        Stream<String> lines = reader.lines();
-        return lines.onClose(() -> {
-            try {
-                reader.close();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        });
-    }
-
-    private File javaExecutable() {
-        File javaExecutable = options.javaExecutable();
+    private Path javaExecutable() throws IOException, InterruptedException {
+        Path javaExecutable = options.javaExecutable();
         if(javaExecutable == null) {
             JaaResources jvmFetcher = new JaaResources();
             javaExecutable = jvmFetcher.javaExecutable(jvmFetcher.javaHome());
