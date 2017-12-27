@@ -1,0 +1,17 @@
+*~
+\#*
+target
+out
+.project
+.classpath
+.settings
+.factorypath
+.cache
+*.iws
+*.ipr
+*.iml
+.idea
+.DS_Store
+.shell_history
+.mailmap
+.java-version
