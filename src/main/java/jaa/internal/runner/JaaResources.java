@@ -80,8 +80,9 @@ public class JaaResources {
     public Path javaExecutable(Path javaHome) throws IOException {
         try (Stream<Path> stream = Files.find(javaHome, 5,
                 (path, attr) ->
+                        path.getParent().getFileName().toString().equalsIgnoreCase("bin") && (
                         path.getFileName().toString().equalsIgnoreCase("java") ||
-                        path.getFileName().toString().equalsIgnoreCase("Java.exe") )) {
+                        path.getFileName().toString().equalsIgnoreCase("Java.exe")))) {
             Optional<Path> maybeJava = stream.findAny();
             if(maybeJava.isPresent()) {
                 Path path = maybeJava.get();
