@@ -35,7 +35,7 @@ public class Proc {
     public void awaitSuccessfulExit() throws InterruptedException {
         process.waitFor();
         if(process.exitValue() != 0) {
-            // TODO include stdout as a help here
+            // TODO include captured as a help here
             throw new AssertionError(String.format("Subprocess exited with error code %d", process.exitValue()));
         }
     }

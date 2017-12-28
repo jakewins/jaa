@@ -74,13 +74,22 @@ public class Jaa
                                     .awaitSuccessfulExit();
 
                             // 3. Combine the two into a report of allocations, sans eliminated ones
-                            AllocationLedger ledger = AllocationLedger.read(fullReportPath)
+                            AllocationLedger fullLedger = AllocationLedger.read(fullReportPath);
+                            AllocationLedger filteredLedger = fullLedger
                                     .filter(excludeEliminatedAllocations);
-                            ledger.write(reportPath);
+                            filteredLedger.write(reportPath);
+
+                            int n = 5;
 
                             System.out.println(methodDescription);
-                            ledger.records().sorted(comparingLong(r -> -r.getTotalBytes())).limit(5).forEach(r -> {
-                                System.out.printf("%db of %s at:\n\t%s\n",
+                            System.out.printf("  Allocates %db total, JVM eliminates %db, %db remaining\n",
+                                    fullLedger.totalBytes(),
+                                    fullLedger.totalBytes() - filteredLedger.totalBytes(),
+                                    filteredLedger.totalBytes());
+                            System.out.printf("  Complete reports in %s\n", reportPath);
+                            System.out.printf("== Top %d allocation points: ==\n", n);
+                            filteredLedger.records().sorted(comparingLong(r -> -r.getTotalBytes())).limit(n).forEach(r -> {
+                                System.out.printf("  %db of %s at:\n\t%s\n",
                                         r.getTotalBytes(),
                                         r.getObj(),
                                         r.getStackTrace()
@@ -88,6 +97,8 @@ public class Jaa
                                                 .filter(s -> s.length() > 1)
                                                 .collect(joining("\n\t")));
                             });
+                            System.out.println();
+                            System.out.println();
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -100,6 +111,7 @@ public class Jaa
     private Path reportFolder() throws IOException {
         Path reportFolder = options.reportFolder();
         if(reportFolder != null) {
+            Files.createDirectories(reportFolder);
             return reportFolder;
         }
 

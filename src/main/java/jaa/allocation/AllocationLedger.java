@@ -98,6 +98,10 @@ public class AllocationLedger
         return records.values().stream().flatMap(m -> m.values().stream());
     }
 
+    public long totalBytes() {
+        return records().mapToLong(Record::getTotalBytes).sum();
+    }
+
     public void write(Path path) throws IOException {
         write(path.toFile());
     }
