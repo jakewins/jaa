@@ -1,5 +1,6 @@
 package jaa.runner;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.channels.Channels;
@@ -9,11 +10,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-
-import static jaa.runner.Proc.exec;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class JaaResources {
     private final Path jvmDownloadDir;
+
+    private final DownloadableJdk[] jdkDownloads = new DownloadableJdk[]{
+        new DownloadableJdk(
+                os -> os.equalsIgnoreCase("linux"),
+                arch -> arch.equalsIgnoreCase("amd64"),
+                (jaaHome) -> {
+                    URL jdkUrl = new URL("https://s3-us-west-2.amazonaws.com/jaa-jvms/jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
+                    Path jdkLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug");
+                    Path zipLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
+
+                    download(jdkUrl, zipLocation);
+                    unzip(zipLocation, jdkLocation);
+                    return jdkLocation;
+                })
+    };
 
     public JaaResources() {
         this(Paths.get(System.getProperty("user.home"), ".jaa"));
@@ -27,30 +44,45 @@ public class JaaResources {
         String osName = System.getProperty("os.name");
         String cpuArch = System.getProperty("os.arch");
 
-        System.out.println(osName);
-        System.out.println(cpuArch);
-
-        if(osName.equalsIgnoreCase("linux")) {
-            System.out.println("It's linux");
+        for (DownloadableJdk jdkDownload : jdkDownloads) {
+            if(jdkDownload.supports(osName, cpuArch)) {
+                return jdkDownload.ensureDownloadedTo(jvmDownloadDir);
+            }
         }
 
-        Files.createDirectories(jvmDownloadDir);
-        Path jdkLocation = jvmDownloadDir.resolve("jdk8-linux-x86_64-fastdebug");
-        URL jdkUrl = new URL("..");
-        Path tarballDownloadLocation = jvmDownloadDir.resolve("jdk8-linux-x86_64-fastdebug.tar.gz");
-
-        download(jdkUrl, tarballDownloadLocation);
-        untar(tarballDownloadLocation, jdkLocation);
-
-        return jdkLocation;
+        // Note; It might be better to just use the JVM currently running, and instead print a warning?
+        // The escape analysis stuff won't work, but at least the allocation tracking would.. not sure.
+        throw new IllegalStateException("JAA depends on a special debug build of the OpenJDK JVM to " +
+                "perform analysis on allocations eliminated by the JVM, and there is none registered for automatic " +
+                "download for your platform.\n" +
+                "For JAA to work, you need to find and install a 'fastdebug' build of the JVM for your platform, and provide " +
+                "to the Options you give the JAA runner.\n" +
+                "If you would, please file a ticket at https://github.com/jakewins/jaa, " +
+                "noting your os.name is '%s', and your os.arch is '%s' to allow automating this in the future.\n");
     }
 
-    public Path javaExecutable(Path javaHome)
-    {
-        return javaHome.resolve("bin").resolve("java");
+    public Path javaExecutable(Path javaHome) throws IOException {
+        try (Stream<Path> stream = Files.find(javaHome, 5,
+                (path, attr) ->
+                        path.getFileName().toString().equalsIgnoreCase("java") ||
+                        path.getFileName().toString().equalsIgnoreCase("Java.exe") )) {
+            Optional<Path> maybeJava = stream.findAny();
+            if(maybeJava.isPresent()) {
+                Path path = maybeJava.get();
+                if(!path.toFile().setExecutable(true)) {
+                    throw new IllegalStateException(String.format("Unable to make %s executable. " +
+                            "Try manually doing it, something like `chmod +x %s`.", path, path));
+                }
+                return path;
+            }
+
+            throw new IllegalStateException(String.format("Unable to find `java`/`Java.exe` executable in %s. " +
+                    "Please specify a direct path to the 'java', or Java.exe on windows, executable file " +
+                    "in the Options you give to the JAA runner.", javaHome));
+        }
     }
 
-    private void download(URL from, Path to) throws IOException {
+    private static void download(URL from, Path to) throws IOException {
         if(Files.exists(to)) {
             return;
         }
@@ -60,16 +92,48 @@ public class JaaResources {
             // TODO: This needs to check the return value..
             // but I'm not sure how to know the value of the remote resource..
             target.transferFrom(rbc, 0, Long.MAX_VALUE);
+        } catch(FileNotFoundException e) {
+            // I'm paranoid about what the AWS bill for this ends up being if someone puts JAA into a CI system,
+            // so this is a precaution to allow me to stop the downloads with at least an explanation.
+            throw new IOException(
+                    "Debug JDK not found at ensureDownloadedTo location. " +
+                    "Most likely he JAA maintainer removed the file due to bandwidth cost.\n" +
+                    "If you are able to help pay for, or directly provide, hosting of these files, please reach out " +
+                    "via a ticket at https://github.com/jakewins/jaa.\n" +
+                    "Meanwhile, please see google for how to build a debug jvm on your own, and provide the " +
+                    "path to it in Options.");
         }
     }
 
-    private void untar(Path tarball, Path untarLocation) throws IOException, InterruptedException {
-        if(Files.exists(untarLocation)) {
+    private static void unzip(Path zipFile, Path target) throws IOException {
+        if(Files.exists(target)) {
             return;
         }
-        exec("tar",
-                "-xvf", tarball.toAbsolutePath().toString(),
-                "--directory", untarLocation.toAbsolutePath().toString())
-                .awaitSuccessfulExit();
+        System.out.println("Unzipping JDK..");
+        new Unzipper().unzip(zipFile, target);
+    }
+}
+
+class DownloadableJdk {
+    final Predicate<String> supportsOs;
+    final Predicate<String> supportsArch;
+    final Downloader downloader;
+
+    interface Downloader {
+        Path download(Path jaaHome) throws IOException;
+    }
+
+    DownloadableJdk(Predicate<String> supportsOs, Predicate<String> supportsArch, Downloader downloader) {
+        this.supportsOs = supportsOs;
+        this.supportsArch = supportsArch;
+        this.downloader = downloader;
+    }
+
+    public boolean supports(String osName, String cpuArchitecture) {
+        return supportsArch.test(cpuArchitecture) && supportsOs.test(osName);
+    }
+
+    public Path ensureDownloadedTo(Path workDir) throws IOException {
+        return downloader.download(workDir);
     }
 }

@@ -119,7 +119,7 @@ public class Jaa
         Class klass = Sampler.class;
         URL location = klass.getResource('/' + klass.getName().replace('.', '/') + ".class");
         if(!location.getPath().startsWith("file:")) {
-            throw new RuntimeException("Unable to determine location of the allocation instrumenter jar, please download the allocation jar from https://github.com/google/allocation-instrumenter and manually specify the location in the options to the Jaa runner.");
+            throw new RuntimeException("Unable to determine location of the allocation instrumenter jar, please ensureDownloadedTo the allocation jar from https://github.com/google/allocation-instrumenter and manually specify the location in the options to the Jaa runner.");
         }
         return Paths.get(location.getPath().substring("file:".length()).split("!")[0]);
     }
