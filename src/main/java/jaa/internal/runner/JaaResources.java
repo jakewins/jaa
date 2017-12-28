@@ -21,7 +21,8 @@ public class JaaResources {
         new DownloadableJdk(
                 os -> os.equalsIgnoreCase("linux"),
                 arch -> arch.equalsIgnoreCase("amd64"),
-                (jaaHome) -> {
+                java -> java.startsWith("1.8.0"),
+                jaaHome -> {
                     URL jdkUrl = new URL("https://s3-us-west-2.amazonaws.com/jaa-jvms/jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
                     Path jdkLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug");
                     Path zipLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
@@ -45,9 +46,10 @@ public class JaaResources {
     public Path javaHome() throws IOException, InterruptedException {
         String osName = System.getProperty("os.name");
         String cpuArch = System.getProperty("os.arch");
+        String javaVersion = System.getProperty("java.version");
 
         for (DownloadableJdk jdkDownload : jdkDownloads) {
-            if(jdkDownload.supports(osName, cpuArch)) {
+            if(jdkDownload.supports(osName, cpuArch, javaVersion)) {
                 return jdkDownload.ensureDownloadedTo(jvmDownloadDir);
             }
         }
@@ -117,22 +119,26 @@ public class JaaResources {
 }
 
 class DownloadableJdk {
-    final Predicate<String> supportsOs;
-    final Predicate<String> supportsArch;
-    final Downloader downloader;
+    private final Predicate<String> supportsOs;
+    private final Predicate<String> supportsArch;
+    private final Predicate<String> supportsJavaVersion;
+    private final Downloader downloader;
 
     interface Downloader {
         Path download(Path jaaHome) throws IOException;
     }
 
-    DownloadableJdk(Predicate<String> supportsOs, Predicate<String> supportsArch, Downloader downloader) {
+    DownloadableJdk(Predicate<String> supportsOs, Predicate<String> supportsArch, Predicate<String> supportsJavaVersion, Downloader downloader) {
         this.supportsOs = supportsOs;
         this.supportsArch = supportsArch;
+        this.supportsJavaVersion = supportsJavaVersion;
         this.downloader = downloader;
     }
 
-    public boolean supports(String osName, String cpuArchitecture) {
-        return supportsArch.test(cpuArchitecture) && supportsOs.test(osName);
+    public boolean supports(String osName, String cpuArchitecture, String javaVersion) {
+        return supportsArch.test(cpuArchitecture)
+                && supportsOs.test(osName)
+                && supportsJavaVersion.test(javaVersion);
     }
 
     public Path ensureDownloadedTo(Path workDir) throws IOException {
