@@ -91,6 +91,7 @@ public class JaaResources {
             return;
         }
         System.out.println("Downloading debug JDK to: " + to);
+        Files.createDirectories(to.getParent());
         try(ReadableByteChannel rbc = Channels.newChannel(from.openStream());
             FileChannel target = FileChannel.open(to, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             // TODO: This needs to check the return value..
