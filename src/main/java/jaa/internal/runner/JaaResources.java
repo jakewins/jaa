@@ -24,14 +24,26 @@ public class JaaResources {
                 java -> java.startsWith("1.8.0"),
                 jaaHome -> {
                     URL jdkUrl = new URL("https://s3-us-west-2.amazonaws.com/jaa-jvms/jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
-                    Path jdkLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug");
                     Path zipLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug.zip");
+                    Path jdkLocation = jaaHome.resolve("jdk8u-a0672a294b9a-linux-x86_64-normal-server-fastdebug");
+
+                    download(jdkUrl, zipLocation);
+                    unzip(zipLocation, jdkLocation);
+                    return jdkLocation;
+                }),
+        new DownloadableJdk(
+                os -> os.toLowerCase().contains("windows"),
+                arch -> arch.equalsIgnoreCase("amd64"),
+                java -> java.startsWith("1.8.0"),
+                jaaHome -> {
+                    URL jdkUrl = new URL("https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.111-1/java-1.8.0-openjdk-fastdebug-1.8.0.111-1.b15.ojdkbuild.windows.x86_64.zip");
+                    Path zipLocation = jaaHome.resolve("java-1.8.0-openjdk-fastdebug-1.8.0.111-1.b15.ojdkbuild.windows.x86_64.zip");
+                    Path jdkLocation = jaaHome.resolve("java-1.8.0-openjdk-fastdebug-1.8.0.111-1.b15.ojdkbuild.windows.x86_64");
 
                     download(jdkUrl, zipLocation);
                     unzip(zipLocation, jdkLocation);
                     return jdkLocation;
                 })
-        // TODO: there are windows builds at https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.111-1/java-1.8.0-openjdk-fastdebug-1.8.0.111-1.b15.ojdkbuild.windows.x86_64.zip
         // TODO: There may be OS X builds via https://github.com/AdoptOpenJDK/openjdk-build/issues/146
     };
 
