@@ -1,4 +1,4 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;

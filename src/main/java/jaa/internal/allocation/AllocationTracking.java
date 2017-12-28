@@ -1,4 +1,4 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import com.google.monitoring.runtime.instrumentation.AllocationRecorder;
 

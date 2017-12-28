@@ -1,6 +1,6 @@
-package jaa.ea;
+package jaa.internal.ea;
 
-import jaa.allocation.AllocationLedger;
+import jaa.internal.allocation.AllocationLedger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;

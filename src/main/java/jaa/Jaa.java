@@ -1,11 +1,11 @@
 package jaa;
 
 import com.google.monitoring.runtime.instrumentation.Sampler;
-import jaa.allocation.AllocationLedger;
-import jaa.ea.EliminationParser;
-import jaa.runner.EntryPoint;
-import jaa.runner.JaaResources;
-import jaa.runner.Proc;
+import jaa.internal.allocation.AllocationLedger;
+import jaa.internal.ea.EliminationParser;
+import jaa.internal.runner.EntryPoint;
+import jaa.internal.runner.JaaResources;
+import jaa.internal.runner.Proc;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -19,8 +19,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static jaa.ea.EliminationParser.predicateThatExcludes;
-import static jaa.runner.Proc.exec;
+import static jaa.internal.ea.EliminationParser.predicateThatExcludes;
+import static jaa.internal.runner.Proc.exec;
 import static java.util.Comparator.comparingLong;
 import static java.util.stream.Collectors.joining;
 

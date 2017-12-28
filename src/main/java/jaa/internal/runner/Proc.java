@@ -1,4 +1,4 @@
-package jaa.runner;
+package jaa.internal.runner;
 
 import java.io.BufferedReader;
 import java.io.IOException;

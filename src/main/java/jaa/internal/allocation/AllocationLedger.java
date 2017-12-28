@@ -1,4 +1,4 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;

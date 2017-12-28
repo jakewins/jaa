@@ -1,4 +1,4 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

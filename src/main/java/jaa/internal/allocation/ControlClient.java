@@ -1,9 +1,9 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import java.io.IOException;
 import java.net.*;
 
-/** Client for {@link jaa.allocation.ControlServer} */
+/** Client for {@link jaa.internal.allocation.ControlServer} */
 public class ControlClient {
     public static void main(String ... argv) throws IOException {
         DatagramSocket serverSocket = new DatagramSocket(0);

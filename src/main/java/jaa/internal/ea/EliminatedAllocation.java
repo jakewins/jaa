@@ -1,4 +1,4 @@
-package jaa.ea;
+package jaa.internal.ea;
 
 import java.util.Arrays;
 import java.util.List;

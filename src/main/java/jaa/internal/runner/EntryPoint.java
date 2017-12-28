@@ -1,7 +1,7 @@
-package jaa.runner;
+package jaa.internal.runner;
 
 import com.google.monitoring.runtime.instrumentation.AllocationRecorder;
-import jaa.allocation.AllocationSampler;
+import jaa.internal.allocation.AllocationSampler;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.File;

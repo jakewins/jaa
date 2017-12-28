@@ -1,4 +1,4 @@
-package jaa.infrastructure;
+package jaa.internal.infrastructure;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;

@@ -1,4 +1,4 @@
-package jaa.allocation;
+package jaa.internal.allocation;
 
 import com.google.monitoring.runtime.instrumentation.Sampler;
 import sun.reflect.Reflection; // TODO this does not work on Java 9, need to put behind conditional import

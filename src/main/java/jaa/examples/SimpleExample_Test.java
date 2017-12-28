@@ -1,6 +1,6 @@
 package jaa.examples;
 
-import jaa.infrastructure.OutputCapture;
+import jaa.internal.infrastructure.OutputCapture;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -37,20 +37,20 @@ public class SimpleExample_Test {
                 "\tsun.reflect.ReflectionFactory\n" +
                 "\tjava.lang.Class\n" +
                 "\tjava.lang.Class\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
                 "  72b of char at:\n" +
                 "\tjava.lang.String\n" +
                 "\tjava.lang.Class\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
                 "  72b of char at:\n" +
                 "\tjava.lang.String\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
                 "  48b of java/nio/HeapCharBuffer at:\n" +
                 "\tjava.nio.CharBuffer\n" +
                 "\tsun.nio.cs.StreamEncoder\n" +
@@ -60,9 +60,9 @@ public class SimpleExample_Test {
                 "\tjava.io.PrintStream\n" +
                 "\tjava.io.PrintStream\n" +
                 "\tjaa.examples.SimpleExample\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
                 "  48b of java/nio/HeapCharBuffer at:\n" +
                 "\tjava.nio.CharBuffer\n" +
                 "\tsun.nio.cs.StreamEncoder\n" +
@@ -73,9 +73,9 @@ public class SimpleExample_Test {
                 "\tjava.io.PrintStream\n" +
                 "\tjava.io.PrintStream\n" +
                 "\tjaa.examples.SimpleExample\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
-                "\tjaa.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
+                "\tjaa.internal.runner.EntryPoint\n" +
                 "\n" +
                 "\n", allocated)
         ));

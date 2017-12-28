@@ -1,6 +1,6 @@
-package jaa.ea;
+package jaa.internal.ea;
 
-import jaa.allocation.AllocationLedger;
+import jaa.internal.allocation.AllocationLedger;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
 
-import static jaa.ea.EliminationParser.predicateThatExcludes;
+import static jaa.internal.ea.EliminationParser.predicateThatExcludes;
 
 public class EscapeProfile
 {

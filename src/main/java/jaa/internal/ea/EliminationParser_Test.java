@@ -1,8 +1,8 @@
-package jaa.ea;
+package jaa.internal.ea;
 
-import jaa.allocation.AllocationLedger;
+import jaa.internal.allocation.AllocationLedger;
 import org.junit.Test;
-import jaa.ea.EliminatedAllocation.Position;
+import jaa.internal.ea.EliminatedAllocation.Position;
 
 import java.util.ArrayList;
 import java.util.function.Predicate;
