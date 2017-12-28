@@ -1,14 +1,18 @@
 package jaa.ea;
 
+import jaa.allocation.AllocationLedger;
 import org.junit.Test;
 import jaa.ea.EliminatedAllocation.Position;
 
 import java.util.ArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toCollection;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class EliminationParser_Test
@@ -91,4 +95,33 @@ public class EliminationParser_Test
                 new Position("Predef$", "double2Double", 1),
                 new Position("Selectivity$", "of", 17)))));
     }
+
+    @Test
+    public void shouldConsiderRawPtrEliminations() throws Exception
+    {
+        // Note; I'm not entirely on the level with rawptr; I think it shows up when there is an
+        // allocation that doesn't actually end up shipping the reference around at all, or something?
+        // In any case, matching on these as-is is likely to lead to false positives; what needs to
+        // happen is to use Java 9 APIs instead to get better stack traces, and couple that with
+        // pulling out the line numbers via the byte code indexes we get in the allocation outputs.
+        // That way we can match the exact allocation point and avoid errors.
+
+        // Given
+        String line = "Scalar  256\tAllocate\t===  198  79  93  8  1 ( 66  65  26  1  10  11  1  1  1  1  11  1 ) [[ 257  258  259  266  267  268 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top ) Double::valueOf @ bci:0 Predef$::double2Double @ bci:1 Selectivity$::of @ bci:17 !jvms: Double::valueOf @ bci:0 Predef$::double2Double @ bci:1 Selectivity$::of @ bci:17\n";
+
+        // When
+        Predicate<AllocationLedger.Record> pred = EliminationParser.predicateThatExcludes(new EliminationParser()
+                .parse(Stream.of(line.split("\n"))));
+
+        // Then
+        assertFalse(pred.test(new AllocationLedger.Record(
+                "java/lang/Object",
+                1337,
+                "Double", "Predef$", "Selectivity$")));
+        assertTrue(pred.test(new AllocationLedger.Record(
+                "java/lang/Object",
+                1337,
+                "Unrelated", "Predef$", "Selectivity$")));
+    }
+
 }

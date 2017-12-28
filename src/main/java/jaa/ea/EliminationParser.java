@@ -64,6 +64,10 @@ public class EliminationParser
             String obj = allocation.getObj();
 
             List<EliminatedAllocation> eliminations = eliminated.get(obj);
+            if(eliminations == null) {
+                // Check if there are rawptr allocations that match the stack trace instead..
+                eliminations = eliminated.get("rawptr");
+            }
             if (eliminations != null) {
                 long count = eliminations
                         .stream()

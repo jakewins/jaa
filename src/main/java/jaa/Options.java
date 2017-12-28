@@ -68,7 +68,7 @@ public class Options
          * @param reportFolder
          * @return a new builder
          */
-        public Builder withReportPathTemplate(Path reportFolder)
+        public Builder withReportFolder(Path reportFolder)
         {
             return new Builder(new Options(state.includes, state.javaExecutable, state.allocationInstrumenter, reportFolder));
         }

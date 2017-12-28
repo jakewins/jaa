@@ -5,6 +5,8 @@ import jaa.Jaa;
 import jaa.Options;
 import org.junit.Test;
 
+import java.nio.file.Paths;
+
 public class SimpleExampleTest {
 
     @AllocationAnalysis
@@ -26,6 +28,7 @@ public class SimpleExampleTest {
     {
         new Jaa(new Options.Builder()
                 .include(SimpleExampleTest.class)
+                .withReportFolder(Paths.get("./target/allocation-reports"))
                 .build())
                 .run();
     }

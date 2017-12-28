@@ -7,10 +7,7 @@ import org.codehaus.jackson.map.ObjectWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -30,9 +27,14 @@ public class AllocationLedger
         AtomicLong totalBytes = new AtomicLong();
         AtomicLong allocs = new AtomicLong();
 
-        Record(List<String> stackTrace, String objectDescription) {
+        public Record(String objectDescription, long totalBytes, String ... stackTrace) {
+            this(objectDescription, totalBytes, Arrays.asList(stackTrace));
+        }
+
+        public Record(String objectDescription, long totalBytes, List<String> stackTrace) {
             this.stackTrace = stackTrace;
             this.objectDescription = objectDescription;
+            this.totalBytes.set(totalBytes);
         }
 
         public void increment(int addAllocs, long addBytes) {
@@ -82,7 +84,7 @@ public class AllocationLedger
         Record record = stackTraces.get(stackTrace);
         if(record == null) {
             List<String> storedTrace = new ArrayList<>(stackTrace);
-            record = stackTraces.computeIfAbsent(storedTrace, k -> new Record(storedTrace, objectDescription));
+            record = stackTraces.computeIfAbsent(storedTrace, k -> new Record(objectDescription, 0, storedTrace));
         }
         record.increment(1, bytes);
     }
