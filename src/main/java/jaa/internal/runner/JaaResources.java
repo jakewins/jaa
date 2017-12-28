@@ -30,6 +30,8 @@ public class JaaResources {
                     unzip(zipLocation, jdkLocation);
                     return jdkLocation;
                 })
+        // TODO: there are windows builds at https://github.com/ojdkbuild/ojdkbuild/releases/download/1.8.0.111-1/java-1.8.0-openjdk-fastdebug-1.8.0.111-1.b15.ojdkbuild.windows.x86_64.zip
+        // TODO: There may be OS X builds via https://github.com/AdoptOpenJDK/openjdk-build/issues/146
     };
 
     public JaaResources() {
