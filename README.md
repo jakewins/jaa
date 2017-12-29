@@ -61,4 +61,4 @@ This gives you a report of allocation points the JVM does not move to the stack 
 
 ## License
 
-GPL, see LICENSE
+GPLv3
