@@ -2,7 +2,7 @@
 
 # JVM Allocation Analyzer, JAA
 
-Simple JVM allocation analysis with awareness of allocations removed by HotSpot.
+Simple JVM memory analysis with awareness of allocations removed by HotSpot.
 
 ## Minimum viable snippet
 
@@ -14,7 +14,7 @@ Add dependency:
       <version>1.0.0</version>
     </dependency>
     
-Write test case:
+Write analysis case:
 
     public class SimpleExample {
     
