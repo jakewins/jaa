@@ -9,14 +9,6 @@ import java.nio.file.Paths;
 
 public class SimpleExample {
 
-    public static void main(String ... argv) throws IOException {
-        new Jaa(new Options.Builder()
-                .include(SimpleExample.class)
-                .withReportFolder(Paths.get("./target/allocation-reports"))
-                .build())
-                .run();
-    }
-
     @AllocationAnalysis
     public void simple() {
         // This loop allocates 5,000,000 objects - except
@@ -37,5 +29,13 @@ public class SimpleExample {
         for (int i = 0; i < 1000; i++) {
             new Object();
         }
+    }
+
+    public static void main(String ... argv) throws IOException {
+        new Jaa(new Options.Builder()
+                .include(SimpleExample.class)
+                .withReportFolder(Paths.get("./target/allocation-reports"))
+                .build())
+                .run();
     }
 }

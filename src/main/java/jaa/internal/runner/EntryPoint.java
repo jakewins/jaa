@@ -1,6 +1,8 @@
 package jaa.internal.runner;
 
 import com.google.monitoring.runtime.instrumentation.AllocationRecorder;
+import jaa.SetUp;
+import jaa.TearDown;
 import jaa.internal.allocation.AllocationSampler;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -14,6 +16,7 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static jaa.internal.infrastructure.Reflection.invoke;
 import static java.util.Arrays.asList;
 
 public class EntryPoint {
@@ -21,7 +24,6 @@ public class EntryPoint {
         try {
             switch (argv[0]) {
                 case "analyze-escapes":
-                    System.out.println("analyze escapes..");
                     new EntryPoint().execute(argv[1], Long.parseLong(argv[2]));
                     break;
                 case "analyze-allocation":
@@ -40,9 +42,17 @@ public class EntryPoint {
 
     private static void stdout(List<Object> message) {
         try {
-            System.out.println("jaa " + new ObjectMapper().writeValueAsString(message));
+            System.out.println("__jaa " + new ObjectMapper().writeValueAsString(message));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void executeFixture(Object instance, Class fixtureAnnotation) {
+        for (Method method : instance.getClass().getDeclaredMethods()) {
+            if(method.getAnnotation(fixtureAnnotation) != null) {
+                invoke(instance, method);
+            }
         }
     }
 
@@ -50,18 +60,21 @@ public class EntryPoint {
     {
         Method method = findMethod(methodDescription);
         BlackHole hole = new BlackHole();
+        Object instance = newInstance(method);
         AllocationSampler sampler = new AllocationSampler(new File(outputPath), 15);
 
         AllocationRecorder.addSampler(sampler);
 
         try
         {
+            executeFixture(instance, SetUp.class);
             sampler.start();
-            execute(hole, newInstance(method), method, 1);
+            hole.consume(invoke(instance, method));
         }
         finally
         {
             sampler.stop();
+            executeFixture(instance, TearDown.class);
         }
     }
 
@@ -70,13 +83,15 @@ public class EntryPoint {
         execute(new BlackHole(), newInstance(method), method, iterations);
     }
 
-    private Object newInstance(Method method) throws InstantiationException, IllegalAccessException {
-        return method.getDeclaringClass().newInstance();
-    }
-
     private void execute(BlackHole hole, Object instance, Method method, long iterations) throws ClassNotFoundException, IllegalAccessException, InstantiationException, InvocationTargetException {
-        for (int i = 0; i < iterations; i++) {
-            hole.consume(method.invoke(instance));
+        executeFixture(instance, SetUp.class);
+        try {
+            for (int i = 0; i < iterations; i++) {
+                hole.consume(method.invoke(instance));
+            }
+        }
+        finally {
+            executeFixture(instance, TearDown.class);
         }
     }
 
@@ -100,6 +115,10 @@ public class EntryPoint {
         }
 
         return methods.get(0);
+    }
+
+    private Object newInstance(Method method) throws InstantiationException, IllegalAccessException {
+        return method.getDeclaringClass().newInstance();
     }
 }
 

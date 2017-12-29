@@ -3,11 +3,13 @@ package jaa;
 import com.google.monitoring.runtime.instrumentation.Sampler;
 import jaa.internal.allocation.AllocationLedger;
 import jaa.internal.ea.EliminationParser;
+import jaa.internal.infrastructure.Reflection;
 import jaa.internal.runner.EntryPoint;
 import jaa.internal.runner.JaaResources;
 import jaa.internal.runner.Proc;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.Files;
@@ -15,9 +17,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static jaa.internal.ea.EliminationParser.predicateThatExcludes;
 import static jaa.internal.runner.Proc.exec;
@@ -41,13 +42,15 @@ public class Jaa
 
             options
                     .includes()
-                    .flatMap(getAnalysisDecoratedMethods())
+                    .map(Reflection.findClass)
+                    .flatMap(Reflection.methodsWithAnnotation(AllocationAnalysis.class))
                     .forEach((Method m) -> {
                         try {
                             String methodDescription = m.getDeclaringClass().getName() + "#" + m.getName();
+                            System.out.printf("%s running..\n", methodDescription);
 
                             // 1. One run to analyze what gets eliminated by escape analysis
-                            Proc proc = exec(
+                            Proc eaProc = exec(
                                     javaExecutable.toAbsolutePath().toString(),
                                     "-classpath", classPath,
                                     "-XX:+UnlockDiagnosticVMOptions",
@@ -57,21 +60,22 @@ public class Jaa
                                     methodDescription,
                                     "1");
                             Predicate<AllocationLedger.Record> excludeEliminatedAllocations = predicateThatExcludes(
-                                    new EliminationParser().parse(proc.stdout()));
-                            proc.awaitSuccessfulExit();
+                                    new EliminationParser().parse(eaProc.stdout()));
+                            eaProc.awaitSuccessfulExit();
 
                             // 2. One run to get an allocation profile
                             Path fullReportPath = reportFolder.resolve(methodDescription + ".full.json");
                             Path reportPath = reportFolder.resolve(methodDescription + ".json");
 
-                            exec(javaExecutable.toAbsolutePath().toString(),
+                            Proc allocProc = exec(javaExecutable.toAbsolutePath().toString(),
                                     "-classpath", classPath,
                                     "-javaagent:" + allocationInstrumenterJar.toAbsolutePath().toString(),
                                     EntryPoint.class.getName(),
                                     "analyze-allocation",
                                     methodDescription,
-                                    fullReportPath.toAbsolutePath().toString())
-                                    .awaitSuccessfulExit();
+                                    fullReportPath.toAbsolutePath().toString());
+                            allocProc.stdout().forEach(forwardUserOutputTo(System.out));
+                            allocProc.awaitSuccessfulExit();
 
                             // 3. Combine the two into a report of allocations, sans eliminated ones
                             AllocationLedger fullLedger = AllocationLedger.read(fullReportPath);
@@ -80,13 +84,14 @@ public class Jaa
                             filteredLedger.write(reportPath);
 
                             int n = 5;
-
-                            System.out.println(methodDescription);
+                            System.out.printf("\n");
+                            System.out.printf("== %s, summary ==\n", methodDescription);
                             System.out.printf("  Allocates %db total, JVM eliminates %db, %db remaining\n",
                                     fullLedger.totalBytes(),
                                     fullLedger.totalBytes() - filteredLedger.totalBytes(),
                                     filteredLedger.totalBytes());
                             System.out.printf("  Complete reports in %s\n", reportPath);
+                            System.out.printf("\n");
                             System.out.printf("== Top %d allocation points: ==\n", n);
                             filteredLedger.records().sorted(comparingLong(r -> -r.getTotalBytes())).limit(n).forEach(r -> {
                                 System.out.printf("  %db of %s at:\n\t%s\n",
@@ -106,6 +111,14 @@ public class Jaa
         } catch(Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Consumer<String> forwardUserOutputTo(PrintStream out) {
+        return line -> {
+            if(!line.startsWith("__jaa")) {
+                out.println(line);
+            }
+        };
     }
 
     private Path reportFolder() throws IOException {
@@ -145,15 +158,4 @@ public class Jaa
         return javaExecutable;
     }
 
-    private Function<String, Stream<? extends Method>> getAnalysisDecoratedMethods() {
-        return className -> {
-            try {
-                return Stream
-                        .of(Class.forName(className).getDeclaredMethods())
-                        .filter(m -> m.getAnnotation(AllocationAnalysis.class) != null);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
 }
