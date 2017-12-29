@@ -6,6 +6,16 @@ Simple JVM allocation analysis with awareness of allocations removed by HotSpot.
 
 ## Minimum viable snippet
 
+Add dependency:
+
+    <dependency>
+      <groupId>com.jakewins</groupId>
+      <artifactId>jaa</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    
+Write test case:
+
     public class SimpleExample {
     
         public static void main(String ... argv) throws IOException {
