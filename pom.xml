@@ -8,8 +8,40 @@
     <artifactId>jaa</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <name>JVM Allocation Analyzer</name>
+    <description>Analysis of memory allocation in JVM-based languages.</description>
+    <url>https://github.com/jakewins/jaa</url>
+
+    <issueManagement>
+        <url>https://github.com/jakewins/jaa/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>GPLv3</name>
+            <url>https://www.gnu.org/licenses/gpl.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/jakewins/jaa</url>
+        <connection>scm:git:git://github.com/jakewins/jaa.git</connection>
+        <developerConnection>scm:git:git@github.com:jakewins/jaa.git</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <email>jakewins@gmail.com</email>
+            <name>Jacob Davis-Hansson</name>
+            <url>https://github.com/jakewins</url>
+            <id>jakewins</id>
+        </developer>
+    </developers>
+
     <properties>
-        <uberjar.name>o</uberjar.name>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
