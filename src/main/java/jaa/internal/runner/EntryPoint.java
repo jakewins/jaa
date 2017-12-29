@@ -56,7 +56,7 @@ public class EntryPoint {
         }
     }
 
-    private void allocationTrackingExecute(String methodDescription, String outputPath) throws Exception
+    private void allocationTrackingExecute(String methodDescription, String outputPath) throws Throwable
     {
         Method method = findMethod(methodDescription);
         BlackHole hole = new BlackHole();
@@ -69,7 +69,7 @@ public class EntryPoint {
         {
             executeFixture(instance, SetUp.class);
             sampler.start();
-            hole.consume(invoke(instance, method));
+            hole.consume(method.invoke(instance));
         }
         finally
         {

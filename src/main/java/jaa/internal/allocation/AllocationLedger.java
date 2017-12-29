@@ -19,6 +19,34 @@ import static java.util.stream.StreamSupport.stream;
 /** Data structure for storing allocations */
 public class AllocationLedger
 {
+    /**
+     * Create a new ledger with the contents of this ledger, sans the contents
+     * of the provided ledger.
+     * @param other
+     * @return
+     */
+    public AllocationLedger subtract(AllocationLedger other) {
+        Stream<Record> result = records()
+                .map(r -> {
+                    Map<List<String>, Record> otherRecords = other.records.get(r.getObj());
+                    if (otherRecords == null) {
+                        return r;
+                    }
+
+                    Record otherRecord = otherRecords.get(r.getStackTrace());
+                    if (otherRecord == null) {
+                        return r;
+                    }
+
+                    return new Record(r.getObj(),
+                            r.getTotalBytes() - otherRecord.getTotalBytes(),
+                            r.getObjectsAllocated() - otherRecord.getObjectsAllocated(),
+                            r.getStackTrace());
+                })
+                .filter(r -> r.getObjectsAllocated() > 0 && r.getTotalBytes() > 0);
+        return new AllocationLedger(result);
+    }
+
     public static class Record
     {
         private final List<String> stackTrace;
@@ -27,14 +55,15 @@ public class AllocationLedger
         AtomicLong totalBytes = new AtomicLong();
         AtomicLong allocs = new AtomicLong();
 
-        public Record(String objectDescription, long totalBytes, String ... stackTrace) {
-            this(objectDescription, totalBytes, Arrays.asList(stackTrace));
+        public Record(String objectDescription, long totalBytes, long allocs, String ... stackTrace) {
+            this(objectDescription, totalBytes, allocs, Arrays.asList(stackTrace));
         }
 
-        public Record(String objectDescription, long totalBytes, List<String> stackTrace) {
+        public Record(String objectDescription, long totalBytes, long allocs, List<String> stackTrace) {
             this.stackTrace = stackTrace;
             this.objectDescription = objectDescription;
             this.totalBytes.set(totalBytes);
+            this.allocs.set(allocs);
         }
 
         public void increment(int addAllocs, long addBytes) {
@@ -56,6 +85,16 @@ public class AllocationLedger
 
         public long getObjectsAllocated() {
             return allocs.get();
+        }
+
+        @Override
+        public String toString() {
+            return "Record{" +
+                    "objectDescription='" + objectDescription + '\'' +
+                    ", stackTrace=" + stackTrace +
+                    ", totalBytes=" + totalBytes +
+                    ", allocs=" + allocs +
+                    '}';
         }
     }
 
@@ -84,7 +123,7 @@ public class AllocationLedger
         Record record = stackTraces.get(stackTrace);
         if(record == null) {
             List<String> storedTrace = new ArrayList<>(stackTrace);
-            record = stackTraces.computeIfAbsent(storedTrace, k -> new Record(objectDescription, 0, storedTrace));
+            record = stackTraces.computeIfAbsent(storedTrace, k -> new Record(objectDescription, 0, 0, storedTrace));
         }
         record.increment(1, bytes);
     }

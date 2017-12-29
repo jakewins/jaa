@@ -116,11 +116,11 @@ public class EliminationParser_Test
         // Then
         assertFalse(pred.test(new AllocationLedger.Record(
                 "java/lang/Object",
-                1337,
+                1337, 1,
                 "Double", "Predef$", "Selectivity$")));
         assertTrue(pred.test(new AllocationLedger.Record(
                 "java/lang/Object",
-                1337,
+                1337, 1,
                 "Unrelated", "Predef$", "Selectivity$")));
     }
 

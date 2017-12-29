@@ -1,27 +1,23 @@
 package jaa;
 
-import com.google.monitoring.runtime.instrumentation.Sampler;
 import jaa.internal.allocation.AllocationLedger;
 import jaa.internal.ea.EliminationParser;
 import jaa.internal.infrastructure.Reflection;
 import jaa.internal.runner.EntryPoint;
 import jaa.internal.runner.JaaResources;
+import jaa.internal.runner.MethodAllocationAnalyzer;
 import jaa.internal.runner.Proc;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import static jaa.internal.ea.EliminationParser.predicateThatExcludes;
+import static jaa.internal.runner.MethodAllocationAnalyzer.defaultAllocationInstrumenterJarPath;
+import static jaa.internal.runner.MethodAllocationAnalyzer.defaultReportFolder;
 import static jaa.internal.runner.Proc.exec;
+import static java.nio.file.Files.createDirectories;
 import static java.util.Comparator.comparingLong;
 import static java.util.stream.Collectors.joining;
 
@@ -65,20 +61,11 @@ public class Jaa
 
                             // 2. One run to get an allocation profile
                             Path fullReportPath = reportFolder.resolve(methodDescription + ".full.json");
-                            Path reportPath = reportFolder.resolve(methodDescription + ".json");
-
-                            Proc allocProc = exec(javaExecutable.toAbsolutePath().toString(),
-                                    "-classpath", classPath,
-                                    "-javaagent:" + allocationInstrumenterJar.toAbsolutePath().toString(),
-                                    EntryPoint.class.getName(),
-                                    "analyze-allocation",
-                                    methodDescription,
-                                    fullReportPath.toAbsolutePath().toString());
-                            allocProc.stdout().forEach(forwardUserOutputTo(System.out));
-                            allocProc.awaitSuccessfulExit();
+                            AllocationLedger fullLedger = new MethodAllocationAnalyzer()
+                                    .analyze(classPath, javaExecutable, allocationInstrumenterJar, fullReportPath, m);
 
                             // 3. Combine the two into a report of allocations, sans eliminated ones
-                            AllocationLedger fullLedger = AllocationLedger.read(fullReportPath);
+                            Path reportPath = reportFolder.resolve(methodDescription + ".json");
                             AllocationLedger filteredLedger = fullLedger
                                     .filter(excludeEliminatedAllocations);
                             filteredLedger.write(reportPath);
@@ -113,26 +100,14 @@ public class Jaa
         }
     }
 
-    private Consumer<String> forwardUserOutputTo(PrintStream out) {
-        return line -> {
-            if(!line.startsWith("__jaa")) {
-                out.println(line);
-            }
-        };
-    }
-
     private Path reportFolder() throws IOException {
         Path reportFolder = options.reportFolder();
         if(reportFolder != null) {
-            Files.createDirectories(reportFolder);
+            createDirectories(reportFolder);
             return reportFolder;
         }
 
-        String directoryName = String.format("allocations-%s",
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(new Date()));
-        reportFolder = Paths.get(".",directoryName);
-        Files.createDirectories(reportFolder);
-        return reportFolder;
+        return defaultReportFolder();
     }
 
     private Path allocationInstrumenterJarPath() {
@@ -141,12 +116,7 @@ public class Jaa
             return allocationInstrumenter;
         }
 
-        Class klass = Sampler.class;
-        URL location = klass.getResource('/' + klass.getName().replace('.', '/') + ".class");
-        if(!location.getPath().startsWith("file:")) {
-            throw new RuntimeException("Unable to determine location of the allocation instrumenter jar, please ensureDownloadedTo the allocation jar from https://github.com/google/allocation-instrumenter and manually specify the location in the options to the Jaa runner.");
-        }
-        return Paths.get(location.getPath().substring("file:".length()).split("!")[0]);
+        return defaultAllocationInstrumenterJarPath();
     }
 
     private Path javaExecutable() throws IOException, InterruptedException {
