@@ -2,7 +2,10 @@
 
 # JVM Allocation Analyzer, JAA
 
-Simple JVM memory analysis with awareness of allocations removed by HotSpot.
+JVM allocation analysis that filters out allocations HotSpot optimizes out.
+
+This gives you allocation reports that are actionable, meaning if you address the top allocations in the report, 
+you'll make a good dent in actual production heap usage.
 
 ## Minimum viable snippet
 
