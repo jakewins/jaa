@@ -6,7 +6,7 @@
 
     <groupId>com.jakewins</groupId>
     <artifactId>jaa</artifactId>
-    <version>1.0.0</version>
+    <version>1.0-SNAPSHOT</version>
 
     <name>JVM Allocation Analyzer</name>
     <description>Analysis of memory allocation in JVM-based languages.</description>
