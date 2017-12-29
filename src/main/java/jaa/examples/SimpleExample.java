@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 
 public class SimpleExample {
 
-    // This little main method runs the allocation analysises in this class.
     public static void main(String ... argv) throws IOException {
         new Jaa(new Options.Builder()
                 .include(SimpleExample.class)
