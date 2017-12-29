@@ -32,7 +32,7 @@ Write analysis case:
         }
     }
 
-See [examples](src/main/java/examples) for more running code.
+See [examples](src/main/java/jaa/examples) for more running code.
 
 ## Rationale
 
